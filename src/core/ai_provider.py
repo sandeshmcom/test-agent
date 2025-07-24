@@ -1,39 +1,80 @@
-"""AI Provider interface for different LLM services."""
+"""AI Provider interface for manual test case generation."""
 
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from enum import Enum
+
+
+class TestPriority(Enum):
+    """Test case priority levels."""
+    CRITICAL = "Critical"
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
+
+
+class TestType(Enum):
+    """Types of manual tests."""
+    FUNCTIONAL = "Functional"
+    UI_UX = "UI/UX"
+    INTEGRATION = "Integration"
+    PERFORMANCE = "Performance"
+    SECURITY = "Security"
+    USABILITY = "Usability"
+    COMPATIBILITY = "Compatibility"
+    REGRESSION = "Regression"
 
 
 @dataclass
-class TestGenerationRequest:
-    """Request object for test generation."""
-    source_code: str
-    language: str
-    test_framework: str
-    function_name: Optional[str] = None
-    class_name: Optional[str] = None
-    additional_context: Optional[str] = None
-    coverage_requirements: List[str] = None
+class TestStep:
+    """Individual test step."""
+    step_number: int
+    action: str
+    expected_result: str
+    notes: Optional[str] = None
 
 
 @dataclass
-class GeneratedTest:
-    """Generated test case result."""
-    test_code: str
-    test_name: str
+class ManualTestCase:
+    """Manual test case structure."""
+    test_id: str
+    title: str
     description: str
-    coverage_areas: List[str]
-    confidence_score: float
+    preconditions: List[str]
+    test_steps: List[TestStep]
+    expected_outcome: str
+    test_type: TestType
+    priority: TestPriority
+    estimated_time: str  # e.g., "5 minutes"
+    tags: List[str]
+    requirements_covered: List[str]
+    test_data_needed: Optional[str] = None
+    environment: Optional[str] = None
+
+
+@dataclass
+class TestCaseGenerationRequest:
+    """Request object for manual test case generation."""
+    feature_description: str
+    requirements: List[str]
+    user_stories: Optional[List[str]] = None
+    acceptance_criteria: Optional[List[str]] = None
+    application_type: str = "web"  # web, mobile, desktop, api
+    target_audience: Optional[str] = None
+    business_context: Optional[str] = None
+    existing_functionality: Optional[str] = None
+    integration_points: Optional[List[str]] = None
+    test_types_requested: Optional[List[TestType]] = None
 
 
 class AIProvider(ABC):
     """Abstract base class for AI providers."""
     
     @abstractmethod
-    async def generate_tests(self, request: TestGenerationRequest) -> List[GeneratedTest]:
-        """Generate test cases for the given source code."""
+    async def generate_manual_tests(self, request: TestCaseGenerationRequest) -> List[ManualTestCase]:
+        """Generate manual test cases for the given requirements."""
         pass
     
     @abstractmethod
@@ -43,7 +84,7 @@ class AIProvider(ABC):
 
 
 class OpenAIProvider(AIProvider):
-    """OpenAI GPT provider for test generation."""
+    """OpenAI GPT provider for manual test case generation."""
     
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -53,8 +94,8 @@ class OpenAIProvider(AIProvider):
     def is_available(self) -> bool:
         return bool(self.api_key)
     
-    async def generate_tests(self, request: TestGenerationRequest) -> List[GeneratedTest]:
-        """Generate tests using OpenAI API."""
+    async def generate_manual_tests(self, request: TestCaseGenerationRequest) -> List[ManualTestCase]:
+        """Generate manual test cases using OpenAI API."""
         if not self.is_available():
             raise ValueError("OpenAI API key not configured")
         
@@ -72,106 +113,174 @@ class OpenAIProvider(AIProvider):
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=2000
+                max_tokens=3000
             )
             
-            return self._parse_response(response.choices[0].message.content, request)
+            return self._parse_response(response.choices[0].message.content)
         
         except Exception as e:
             raise RuntimeError(f"OpenAI API error: {str(e)}")
     
     def _get_system_prompt(self) -> str:
-        return """You are an expert software testing engineer. Your task is to generate comprehensive, 
-        high-quality test cases for the given source code. Focus on:
-        
-        1. Edge cases and boundary conditions
-        2. Error handling and exception scenarios
-        3. Normal operation flows
-        4. Integration points
-        5. Performance considerations where relevant
-        
-        Generate tests that are:
-        - Well-documented with clear descriptions
-        - Follow testing best practices
-        - Use appropriate assertions
-        - Cover different code paths
-        - Are maintainable and readable
-        
-        Return your response in JSON format with the following structure:
+        return """You are an expert QA Engineer and Test Case Designer. Your task is to create comprehensive manual test cases that ensure thorough testing coverage. Focus on:
+
+1. **Functional Testing**: Core feature functionality, business logic validation
+2. **UI/UX Testing**: User interface elements, user experience flows
+3. **Edge Cases**: Boundary conditions, unusual scenarios
+4. **Error Handling**: Invalid inputs, system failures, error messages
+5. **Integration Testing**: Data flow between components/systems
+6. **Usability Testing**: User-friendliness, accessibility
+7. **Performance**: Response times, load handling (where applicable)
+8. **Security**: Data protection, input validation, authorization
+
+Create test cases that are:
+- Clear and unambiguous with step-by-step instructions
+- Executable by any QA tester without domain expertise
+- Cover positive, negative, and edge case scenarios
+- Include specific expected results
+- Prioritized by business impact
+- Traceable to requirements
+
+Return your response in JSON format with this structure:
+{
+    "test_cases": [
         {
-            "tests": [
+            "test_id": "TC_001",
+            "title": "Clear, descriptive test case name",
+            "description": "What this test validates",
+            "preconditions": ["Setup requirement 1", "Setup requirement 2"],
+            "test_steps": [
                 {
-                    "test_name": "test_function_name",
-                    "description": "What this test verifies",
-                    "test_code": "Complete test function code",
-                    "coverage_areas": ["area1", "area2"],
-                    "confidence_score": 0.9
+                    "step_number": 1,
+                    "action": "Detailed action to perform",
+                    "expected_result": "Expected outcome",
+                    "notes": "Optional additional info"
                 }
-            ]
-        }"""
+            ],
+            "expected_outcome": "Overall expected result",
+            "test_type": "Functional|UI_UX|Integration|Performance|Security|Usability|Compatibility|Regression",
+            "priority": "Critical|High|Medium|Low",
+            "estimated_time": "X minutes",
+            "tags": ["tag1", "tag2"],
+            "requirements_covered": ["REQ-001"],
+            "test_data_needed": "Description of test data",
+            "environment": "Test environment requirements"
+        }
+    ]
+}"""
     
-    def _build_prompt(self, request: TestGenerationRequest) -> str:
-        prompt = f"""Generate comprehensive test cases for the following {request.language} code:
+    def _build_prompt(self, request: TestCaseGenerationRequest) -> str:
+        prompt = f"""Create comprehensive manual test cases for the following feature:
 
-```{request.language}
-{request.source_code}
-```
+**Feature Description:**
+{request.feature_description}
 
-Target testing framework: {request.test_framework}
+**Requirements:**
+{chr(10).join(f"- {req}" for req in request.requirements)}
+
+**Application Type:** {request.application_type}
 """
         
-        if request.function_name:
-            prompt += f"Focus on testing function: {request.function_name}\n"
+        if request.user_stories:
+            prompt += f"\n**User Stories:**\n{chr(10).join(f'- {story}' for story in request.user_stories)}\n"
         
-        if request.class_name:
-            prompt += f"Focus on testing class: {request.class_name}\n"
+        if request.acceptance_criteria:
+            prompt += f"\n**Acceptance Criteria:**\n{chr(10).join(f'- {criteria}' for criteria in request.acceptance_criteria)}\n"
         
-        if request.additional_context:
-            prompt += f"Additional context: {request.additional_context}\n"
+        if request.target_audience:
+            prompt += f"\n**Target Audience:** {request.target_audience}\n"
         
-        if request.coverage_requirements:
-            prompt += f"Required coverage areas: {', '.join(request.coverage_requirements)}\n"
+        if request.business_context:
+            prompt += f"\n**Business Context:** {request.business_context}\n"
+        
+        if request.existing_functionality:
+            prompt += f"\n**Existing Functionality:** {request.existing_functionality}\n"
+        
+        if request.integration_points:
+            prompt += f"\n**Integration Points:** {', '.join(request.integration_points)}\n"
+        
+        if request.test_types_requested:
+            test_types = [t.value for t in request.test_types_requested]
+            prompt += f"\n**Focus on these test types:** {', '.join(test_types)}\n"
+        
+        prompt += """
+Generate a comprehensive set of manual test cases covering:
+1. Happy path scenarios
+2. Error/exception scenarios  
+3. Edge cases and boundary conditions
+4. Different user roles/permissions (if applicable)
+5. Cross-browser/device compatibility (if applicable)
+6. Integration scenarios
+7. Performance considerations
+8. Security aspects
+
+Ensure test cases are practical, executable, and provide clear pass/fail criteria.
+"""
         
         return prompt
     
-    def _parse_response(self, response: str, request: TestGenerationRequest) -> List[GeneratedTest]:
-        """Parse AI response into GeneratedTest objects."""
+    def _parse_response(self, response: str) -> List[ManualTestCase]:
+        """Parse AI response into ManualTestCase objects."""
         import json
         import re
         
         try:
-            # Try to extract JSON from response
+            # Extract JSON from response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                tests = []
-                
-                for test_data in data.get("tests", []):
-                    tests.append(GeneratedTest(
-                        test_code=test_data.get("test_code", ""),
-                        test_name=test_data.get("test_name", ""),
-                        description=test_data.get("description", ""),
-                        coverage_areas=test_data.get("coverage_areas", []),
-                        confidence_score=test_data.get("confidence_score", 0.5)
+            if not json_match:
+                raise ValueError("No JSON found in response")
+            
+            data = json.loads(json_match.group())
+            test_cases = []
+            
+            for idx, tc_data in enumerate(data.get("test_cases", [])):
+                # Parse test steps
+                test_steps = []
+                for step_data in tc_data.get("test_steps", []):
+                    test_steps.append(TestStep(
+                        step_number=step_data.get("step_number", 1),
+                        action=step_data.get("action", ""),
+                        expected_result=step_data.get("expected_result", ""),
+                        notes=step_data.get("notes")
                     ))
                 
-                return tests
-            else:
-                # Fallback: treat entire response as test code
-                return [GeneratedTest(
-                    test_code=response,
-                    test_name="generated_test",
-                    description="Generated test case",
-                    coverage_areas=["general"],
-                    confidence_score=0.6
-                )]
+                # Parse enums
+                test_type = TestType.FUNCTIONAL
+                try:
+                    test_type = TestType(tc_data.get("test_type", "Functional"))
+                except ValueError:
+                    pass  # Default to FUNCTIONAL
+                
+                priority = TestPriority.MEDIUM
+                try:
+                    priority = TestPriority(tc_data.get("priority", "Medium"))
+                except ValueError:
+                    pass  # Default to MEDIUM
+                
+                test_cases.append(ManualTestCase(
+                    test_id=tc_data.get("test_id", f"TC_{idx+1:03d}"),
+                    title=tc_data.get("title", ""),
+                    description=tc_data.get("description", ""),
+                    preconditions=tc_data.get("preconditions", []),
+                    test_steps=test_steps,
+                    expected_outcome=tc_data.get("expected_outcome", ""),
+                    test_type=test_type,
+                    priority=priority,
+                    estimated_time=tc_data.get("estimated_time", "5 minutes"),
+                    tags=tc_data.get("tags", []),
+                    requirements_covered=tc_data.get("requirements_covered", []),
+                    test_data_needed=tc_data.get("test_data_needed"),
+                    environment=tc_data.get("environment")
+                ))
+            
+            return test_cases
         
         except Exception as e:
             raise RuntimeError(f"Failed to parse AI response: {str(e)}")
 
 
 class AnthropicProvider(AIProvider):
-    """Anthropic Claude provider for test generation."""
+    """Anthropic Claude provider for manual test case generation."""
     
     def __init__(self, api_key: Optional[str] = None, model: str = "claude-3-sonnet-20240229"):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -181,8 +290,8 @@ class AnthropicProvider(AIProvider):
     def is_available(self) -> bool:
         return bool(self.api_key)
     
-    async def generate_tests(self, request: TestGenerationRequest) -> List[GeneratedTest]:
-        """Generate tests using Anthropic API."""
+    async def generate_manual_tests(self, request: TestCaseGenerationRequest) -> List[ManualTestCase]:
+        """Generate manual test cases using Anthropic API."""
         if not self.is_available():
             raise ValueError("Anthropic API key not configured")
         
@@ -195,60 +304,80 @@ class AnthropicProvider(AIProvider):
             
             response = await self._client.messages.create(
                 model=self.model,
-                max_tokens=2000,
+                max_tokens=3000,
                 temperature=0.3,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
             )
             
-            return self._parse_response(response.content[0].text, request)
+            return self._parse_response(response.content[0].text)
         
         except Exception as e:
             raise RuntimeError(f"Anthropic API error: {str(e)}")
     
-    def _build_prompt(self, request: TestGenerationRequest) -> str:
-        system_context = """You are an expert software testing engineer. Generate comprehensive, 
-        high-quality test cases that cover edge cases, error handling, and normal operations."""
+    def _build_prompt(self, request: TestCaseGenerationRequest) -> str:
+        system_context = """You are an expert QA Engineer specializing in manual test case design. Create comprehensive test cases covering functional, UI/UX, edge cases, error handling, and integration scenarios."""
         
         prompt = f"""{system_context}
 
-Generate test cases for this {request.language} code using {request.test_framework}:
+Create manual test cases for this feature:
 
-```{request.language}
-{request.source_code}
-```
+Feature: {request.feature_description}
+
+Requirements:
+{chr(10).join(f"- {req}" for req in request.requirements)}
+
+Application Type: {request.application_type}
 """
         
-        if request.function_name:
-            prompt += f"Focus on function: {request.function_name}\n"
+        if request.user_stories:
+            prompt += f"\nUser Stories: {', '.join(request.user_stories)}"
         
-        if request.class_name:
-            prompt += f"Focus on class: {request.class_name}\n"
+        if request.acceptance_criteria:
+            prompt += f"\nAcceptance Criteria: {', '.join(request.acceptance_criteria)}"
         
-        if request.additional_context:
-            prompt += f"Context: {request.additional_context}\n"
+        if request.business_context:
+            prompt += f"\nBusiness Context: {request.business_context}"
         
         prompt += """
-Return JSON format:
+
+Return JSON format with comprehensive manual test cases:
 {
-    "tests": [
+    "test_cases": [
         {
-            "test_name": "test_name",
-            "description": "test description",
-            "test_code": "complete test code",
-            "coverage_areas": ["area1", "area2"],
-            "confidence_score": 0.9
+            "test_id": "TC_001",
+            "title": "Test case name",
+            "description": "What this validates",
+            "preconditions": ["setup requirements"],
+            "test_steps": [
+                {
+                    "step_number": 1,
+                    "action": "Step to perform",
+                    "expected_result": "Expected outcome",
+                    "notes": "Optional notes"
+                }
+            ],
+            "expected_outcome": "Overall expected result",
+            "test_type": "Functional|UI_UX|Integration|Performance|Security|Usability|Compatibility|Regression",
+            "priority": "Critical|High|Medium|Low",
+            "estimated_time": "X minutes",
+            "tags": ["relevant", "tags"],
+            "requirements_covered": ["REQ-001"],
+            "test_data_needed": "Test data description",
+            "environment": "Environment requirements"
         }
     ]
-}"""
+}
+
+Cover positive flows, negative scenarios, edge cases, error handling, and integration points."""
         
         return prompt
     
-    def _parse_response(self, response: str, request: TestGenerationRequest) -> List[GeneratedTest]:
-        """Parse AI response into GeneratedTest objects."""
+    def _parse_response(self, response: str) -> List[ManualTestCase]:
+        """Parse AI response into ManualTestCase objects."""
         # Reuse the same parsing logic as OpenAI
-        return OpenAIProvider._parse_response(self, response, request)
+        return OpenAIProvider._parse_response(self, response)
 
 
 def get_available_providers() -> Dict[str, AIProvider]:
