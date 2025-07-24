@@ -263,11 +263,35 @@ If you encounter any issues or have questions:
 2. Create a new issue with detailed information about your problem
 3. Include your Python version, OS, and the exact command you ran
 
+## Web UI
+
+We've built a beautiful, modern web interface for the AI Test Agent! 🎉
+
+### Quick Start Web UI
+
+```bash
+# Start both backend and frontend
+./start_ui.sh
+```
+
+Then open http://localhost:3000 in your browser.
+
+### Features
+- 🎨 **Modern React Interface**: Beautiful, responsive design with Material-UI
+- 📱 **Mobile Friendly**: Works on desktop, tablet, and mobile
+- 🚀 **Real-time Generation**: Live progress indicators
+- 📊 **Visual Dashboard**: Rich summary with charts and statistics  
+- 💾 **Export Options**: Download as JSON, CSV, Markdown, or HTML
+- 🔄 **Provider Selection**: Choose between OpenAI and Anthropic
+- 📝 **Advanced Forms**: Dynamic field management with validation
+
+See [WEB_UI_README.md](WEB_UI_README.md) for complete web UI documentation.
+
 ## Roadmap
 
+- [x] ~~Web interface for non-technical users~~ ✅ **COMPLETED**
 - [ ] Integration with popular test management tools (TestRail, Jira, Azure DevOps)
 - [ ] Support for additional AI providers
-- [ ] Web interface for non-technical users
 - [ ] Test case versioning and management
 - [ ] Automated test data generation
 - [ ] Integration with CI/CD pipelines
