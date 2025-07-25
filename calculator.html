@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .calculator {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .calculator h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .display {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: right;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-number {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-number:hover {
+            background: #dee2e6;
+        }
+
+        .btn-operator {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-operator:hover {
+            background: #0056b3;
+        }
+
+        .btn-equals {
+            background: #28a745;
+            color: white;
+            grid-column: span 2;
+        }
+
+        .btn-equals:hover {
+            background: #1e7e34;
+        }
+
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #c82333;
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+        }
+
+        .history {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .history-item {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+            padding: 5px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .btn-history {
+            background: #6c757d;
+            color: white;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-history:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h1>🧮 Simple Calculator</h1>
+        
+        <div class="display" id="display">0</div>
+        
+        <div class="buttons">
+            <button class="btn btn-clear" onclick="clearAll()">C</button>
+            <button class="btn btn-clear" onclick="clearEntry()">CE</button>
+            <button class="btn btn-operator" onclick="appendToDisplay('/')">&divide;</button>
+            <button class="btn btn-operator" onclick="appendToDisplay('*')">&times;</button>
+            
+            <button class="btn btn-number" onclick="appendToDisplay('7')">7</button>
+            <button class="btn btn-number" onclick="appendToDisplay('8')">8</button>
+            <button class="btn btn-number" onclick="appendToDisplay('9')">9</button>
+            <button class="btn btn-operator" onclick="appendToDisplay('-')">-</button>
+            
+            <button class="btn btn-number" onclick="appendToDisplay('4')">4</button>
+            <button class="btn btn-number" onclick="appendToDisplay('5')">5</button>
+            <button class="btn btn-number" onclick="appendToDisplay('6')">6</button>
+            <button class="btn btn-operator" onclick="appendToDisplay('+')">+</button>
+            
+            <button class="btn btn-number" onclick="appendToDisplay('1')">1</button>
+            <button class="btn btn-number" onclick="appendToDisplay('2')">2</button>
+            <button class="btn btn-number" onclick="appendToDisplay('3')">3</button>
+            <button class="btn btn-operator" onclick="squareRoot()" rowspan="2">√</button>
+            
+            <button class="btn btn-number btn-zero" onclick="appendToDisplay('0')">0</button>
+            <button class="btn btn-number" onclick="appendToDisplay('.')">.</button>
+            <button class="btn btn-equals" onclick="calculate()">=</button>
+        </div>
+
+        <button class="btn btn-history" onclick="toggleHistory()">Show History</button>
+        
+        <div class="history" id="history" style="display: none;">
+            <h3>Calculation History</h3>
+            <div id="history-list"></div>
+            <button class="btn btn-clear" onclick="clearHistory()" style="width: 100%; margin-top: 10px;">Clear History</button>
+        </div>
+    </div>
+
+    <script>
+        // Calculator state
+        let display = document.getElementById('display');
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = '';
+        let waitingForOperand = false;
+        let history = [];
+
+        // Update display
+        function updateDisplay() {
+            display.textContent = currentInput;
+        }
+
+        // Append number or operator to display
+        function appendToDisplay(value) {
+            if (waitingForOperand) {
+                currentInput = value;
+                waitingForOperand = false;
+            } else {
+                currentInput = currentInput === '0' ? value : currentInput + value;
+            }
+            updateDisplay();
+        }
+
+        // Clear all
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            operator = '';
+            waitingForOperand = false;
+            updateDisplay();
+        }
+
+        // Clear current entry
+        function clearEntry() {
+            currentInput = '0';
+            updateDisplay();
+        }
+
+        // Calculate square root
+        function squareRoot() {
+            const num = parseFloat(currentInput);
+            if (num < 0) {
+                alert('Cannot calculate square root of negative number!');
+                return;
+            }
+            const result = Math.sqrt(num);
+            addToHistory(`√${num} = ${result}`);
+            currentInput = result.toString();
+            updateDisplay();
+            waitingForOperand = true;
+        }
+
+        // Perform calculation
+        function calculate() {
+            let result;
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+
+            if (isNaN(prev) || isNaN(current)) {
+                return;
+            }
+
+            switch (operator) {
+                case '+':
+                    result = prev + current;
+                    break;
+                case '-':
+                    result = prev - current;
+                    break;
+                case '*':
+                    result = prev * current;
+                    break;
+                case '/':
+                    if (current === 0) {
+                        alert('Cannot divide by zero!');
+                        return;
+                    }
+                    result = prev / current;
+                    break;
+                default:
+                    return;
+            }
+
+            // Add to history
+            const operatorSymbol = {
+                '+': '+',
+                '-': '-',
+                '*': '×',
+                '/': '÷'
+            }[operator];
+            
+            addToHistory(`${prev} ${operatorSymbol} ${current} = ${result}`);
+
+            currentInput = result.toString();
+            operator = '';
+            previousInput = '';
+            waitingForOperand = true;
+            updateDisplay();
+        }
+
+        // Handle operator buttons
+        function handleOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput === '') {
+                previousInput = inputValue;
+            } else if (operator) {
+                const currentValue = previousInput || 0;
+                const newValue = calculate(currentValue, inputValue, operator);
+
+                currentInput = String(newValue);
+                previousInput = newValue;
+            }
+
+            waitingForOperand = true;
+            operator = nextOperator;
+        }
+
+        // Add calculation to history
+        function addToHistory(calculation) {
+            history.unshift(calculation);
+            if (history.length > 10) {
+                history = history.slice(0, 10);
+            }
+            updateHistoryDisplay();
+        }
+
+        // Update history display
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div style="color: #999; font-style: italic;">No calculations yet</div>';
+                return;
+            }
+
+            history.forEach(calculation => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.textContent = calculation;
+                historyList.appendChild(item);
+            });
+        }
+
+        // Toggle history visibility
+        function toggleHistory() {
+            const historyDiv = document.getElementById('history');
+            const button = event.target;
+            
+            if (historyDiv.style.display === 'none') {
+                historyDiv.style.display = 'block';
+                button.textContent = 'Hide History';
+                updateHistoryDisplay();
+            } else {
+                historyDiv.style.display = 'none';
+                button.textContent = 'Show History';
+            }
+        }
+
+        // Clear history
+        function clearHistory() {
+            history = [];
+            updateHistoryDisplay();
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            if (key >= '0' && key <= '9' || key === '.') {
+                appendToDisplay(key);
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                appendToDisplay(key);
+            } else if (key === 'Enter' || key === '=') {
+                event.preventDefault();
+                calculate();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                if (currentInput.length > 1) {
+                    currentInput = currentInput.slice(0, -1);
+                } else {
+                    currentInput = '0';
+                }
+                updateDisplay();
+            }
+        });
+
+        // Override operator buttons to use the handleOperator function
+        document.querySelectorAll('.btn-operator').forEach(btn => {
+            if (btn.textContent !== '√') {
+                btn.onclick = function() {
+                    const operatorMap = {
+                        '÷': '/',
+                        '×': '*',
+                        '-': '-',
+                        '+': '+'
+                    };
+                    const op = operatorMap[btn.textContent] || btn.textContent;
+                    
+                    if (operator && !waitingForOperand) {
+                        calculate();
+                    }
+                    
+                    previousInput = currentInput;
+                    operator = op;
+                    waitingForOperand = true;
+                };
+            }
+        });
+
+        // Initialize
+        updateDisplay();
+        updateHistoryDisplay();
+    </script>
+</body>
+</html>
